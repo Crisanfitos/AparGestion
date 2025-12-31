@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Calendar Agenda - Apargestión</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0000cc",
+                        "background-light": "#ffffff",
+                        "background-dark": "#0f0f23", // Kept for config consistency, but design is strictly white/light per request
+                        "neutral-800": "#101018",
+                        "neutral-600": "#4b4b4b",
+                        "neutral-200": "#e5e5e5",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    spacing: {
+                        "15": "3.75rem", // 60px
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Ensuring base font size meets accessibility requirement */
+        body {
+            font-size: 18px; 
+            line-height: 1.5;
+        }
+        
+        /* Material Symbols overrides for size */
+        .material-symbols-outlined {
+            font-size: 32px; /* Large icons for seniors */
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 40;
+        }
+
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light text-neutral-800 font-display antialiased selection:bg-primary/20">
+<div class="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto border-x border-neutral-200 shadow-sm">
+<!-- Header -->
+<header class="sticky top-0 z-20 bg-white border-b border-neutral-200">
+<div class="flex items-center justify-between px-5 py-4 min-h-[80px]"> <!-- Increased height for touch targets -->
+<h1 class="text-3xl font-extrabold tracking-tight text-neutral-800">Calendario</h1>
+<button aria-label="Help and Support" class="flex items-center justify-center w-[60px] h-[60px] rounded-full hover:bg-neutral-100 transition-colors focus:ring-4 ring-primary ring-opacity-50 outline-none">
+<span class="material-symbols-outlined text-primary">help</span>
+</button>
+</div>
+<!-- Current Month Indicator -->
+<div class="bg-primary/5 px-5 py-3 border-b border-primary/10 flex items-center justify-between">
+<button class="w-[60px] h-[60px] flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<h2 class="text-xl font-bold text-neutral-800">October 2023</h2>
+<button class="w-[60px] h-[60px] flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area: List View -->
+<main class="flex-1 overflow-y-auto pb-32"> <!-- Padding bottom for floating action bar space -->
+<!-- Accessibility Note: Using Semantic List for screen readers -->
+<ul class="flex flex-col divide-y divide-neutral-200" role="list">
+<!-- ITEM 1: FREE -->
+<li class="group">
+<button class="w-full text-left focus:outline-none focus:bg-yellow-50 focus:ring-inset focus:ring-4 focus:ring-primary" onclick="alert('This would open date details')">
+<div class="flex items-stretch min-h-[100px] px-5 py-4 hover:bg-neutral-50 transition-colors">
+<!-- Left: Date -->
+<div class="flex flex-col items-center justify-center mr-5 min-w-[3.5rem]">
+<span class="text-sm font-bold uppercase text-neutral-600 tracking-wider">Mon</span>
+<span class="text-4xl font-extrabold text-neutral-800">12</span>
+</div>
+<!-- Right: Status -->
+<div class="flex flex-col justify-center flex-1 pl-4 border-l-4 border-emerald-600">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-emerald-700 !text-2xl">check_circle</span>
+<span class="text-xl font-bold text-emerald-800">Libre</span>
+</div>
+<p class="text-lg text-neutral-600 font-medium">Disponible para reservar</p>
+</div>
+<!-- Chevron indicating action -->
+<div class="flex items-center justify-center pl-2 text-neutral-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">navigate_next</span>
+</div>
+</div>
+</button>
+</li>
+<!-- ITEM 2: OCCUPIED -->
+<li class="group">
+<button class="w-full text-left focus:outline-none focus:bg-yellow-50 focus:ring-inset focus:ring-4 focus:ring-primary">
+<div class="flex items-stretch min-h-[100px] px-5 py-4 hover:bg-neutral-50 transition-colors bg-blue-50/50">
+<!-- Left: Date -->
+<div class="flex flex-col items-center justify-center mr-5 min-w-[3.5rem]">
+<span class="text-sm font-bold uppercase text-neutral-600 tracking-wider">Tue</span>
+<span class="text-4xl font-extrabold text-neutral-800">13</span>
+</div>
+<!-- Right: Status -->
+<div class="flex flex-col justify-center flex-1 pl-4 border-l-4 border-primary">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary fill !text-2xl">person</span>
+<span class="text-xl font-bold text-primary">Ocupado</span>
+</div>
+<p class="text-lg text-neutral-800 font-semibold">Juan Perez</p>
+</div>
+<!-- Chevron -->
+<div class="flex items-center justify-center pl-2 text-neutral-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">navigate_next</span>
+</div>
+</div>
+</button>
+</li>
+<!-- ITEM 3: LOCKED / EXTERNAL -->
+<li class="group">
+<button aria-label="Wednesday 14, Locked by Booking.com" class="w-full text-left focus:outline-none focus:bg-yellow-50 focus:ring-inset focus:ring-4 focus:ring-primary">
+<div class="flex items-stretch min-h-[100px] px-5 py-4 bg-neutral-100 hover:bg-neutral-200 transition-colors opacity-90">
+<!-- Left: Date -->
+<div class="flex flex-col items-center justify-center mr-5 min-w-[3.5rem]">
+<span class="text-sm font-bold uppercase text-neutral-500 tracking-wider">Wed</span>
+<span class="text-4xl font-bold text-neutral-500">14</span>
+</div>
+<!-- Right: Status -->
+<div class="flex flex-col justify-center flex-1 pl-4 border-l-4 border-neutral-400">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-neutral-600 !text-2xl">lock</span>
+<span class="text-xl font-bold text-neutral-700">Externo</span>
+</div>
+<p class="text-lg text-neutral-600 font-medium">Booking.com</p>
+</div>
+<!-- Chevron -->
+<div class="flex items-center justify-center pl-2 text-neutral-400 group-hover:text-neutral-600 transition-colors">
+<span class="material-symbols-outlined">navigate_next</span>
+</div>
+</div>
+</button>
+</li>
+<!-- ITEM 4: FREE -->
+<li class="group">
+<button class="w-full text-left focus:outline-none focus:bg-yellow-50 focus:ring-inset focus:ring-4 focus:ring-primary">
+<div class="flex items-stretch min-h-[100px] px-5 py-4 hover:bg-neutral-50 transition-colors">
+<div class="flex flex-col items-center justify-center mr-5 min-w-[3.5rem]">
+<span class="text-sm font-bold uppercase text-neutral-600 tracking-wider">Thu</span>
+<span class="text-4xl font-extrabold text-neutral-800">15</span>
+</div>
+<div class="flex flex-col justify-center flex-1 pl-4 border-l-4 border-emerald-600">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-emerald-700 !text-2xl">check_circle</span>
+<span class="text-xl font-bold text-emerald-800">Libre</span>
+</div>
+<p class="text-lg text-neutral-600 font-medium">Disponible para reservar</p>
+</div>
+<div class="flex items-center justify-center pl-2 text-neutral-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">navigate_next</span>
+</div>
+</div>
+</button>
+</li>
+<!-- ITEM 5: FREE -->
+<li class="group">
+<button class="w-full text-left focus:outline-none focus:bg-yellow-50 focus:ring-inset focus:ring-4 focus:ring-primary">
+<div class="flex items-stretch min-h-[100px] px-5 py-4 hover:bg-neutral-50 transition-colors">
+<div class="flex flex-col items-center justify-center mr-5 min-w-[3.5rem]">
+<span class="text-sm font-bold uppercase text-neutral-600 tracking-wider">Fri</span>
+<span class="text-4xl font-extrabold text-neutral-800">16</span>
+</div>
+<div class="flex flex-col justify-center flex-1 pl-4 border-l-4 border-emerald-600">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-emerald-700 !text-2xl">check_circle</span>
+<span class="text-xl font-bold text-emerald-800">Libre</span>
+</div>
+<p class="text-lg text-neutral-600 font-medium">Disponible para reservar</p>
+</div>
+<div class="flex items-center justify-center pl-2 text-neutral-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">navigate_next</span>
+</div>
+</div>
+</button>
+</li>
+</ul>
+<!-- End of list visual cue -->
+<div class="p-8 text-center">
+<span class="text-neutral-400 text-base font-medium">No more dates loaded</span>
+</div>
+</main>
+<!-- Floating Action Button Area (Bottom Fixed) -->
+<!-- Using a large full width button for accessibility rather than a small circle FAB -->
+<div class="fixed bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-white via-white to-transparent max-w-md mx-auto pointer-events-none flex justify-center pb-8">
+<button class="pointer-events-auto shadow-xl bg-primary hover:bg-[#0000aa] text-white rounded-lg px-8 h-[72px] flex items-center justify-center gap-3 w-full max-w-[90%] transform active:scale-95 transition-all focus:ring-4 ring-offset-2 ring-primary">
+<span class="material-symbols-outlined !text-4xl">add</span>
+<span class="text-xl font-bold">Bloquear Fechas</span>
+</button>
+</div>
+</div>
+<!-- Modal (Currently Hidden - Example Structure for interaction) -->
+<!-- In a real app, this would be toggled via JS framework state -->
+<div aria-modal="true" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm" id="detail-modal" role="dialog">
+<div class="bg-white w-full max-w-md rounded-t-2xl p-6 shadow-2xl animate-slide-up">
+<div class="flex justify-center mb-4">
+<div class="w-16 h-1.5 bg-neutral-300 rounded-full"></div>
+</div>
+<h3 class="text-2xl font-bold text-neutral-800 mb-2">Tue, Oct 13</h3>
+<div class="bg-blue-50 border-l-4 border-primary p-4 rounded-r-lg mb-6">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary">person</span>
+<span class="text-xl font-bold text-primary">Ocupado</span>
+</div>
+<p class="text-lg font-bold text-neutral-800">Juan Perez</p>
+<p class="text-lg text-neutral-600">Check-in: 15:00</p>
+<p class="text-lg text-neutral-600">Check-out: 11:00</p>
+</div>
+<div class="space-y-4">
+<a class="flex items-center justify-center gap-3 w-full h-[64px] bg-primary text-white rounded-lg font-bold text-xl hover:bg-[#0000aa]" href="tel:+123456789">
+<span class="material-symbols-outlined">call</span>
+                    Llamar a Juan
+                </a>
+<button class="flex items-center justify-center w-full h-[64px] bg-neutral-100 text-neutral-800 border border-neutral-300 rounded-lg font-bold text-xl hover:bg-neutral-200" onclick="document.getElementById('detail-modal').classList.add('hidden')">
+                    Cerrar
+                </button>
+</div>
+<div class="h-8"></div>
+</div>
+</div>
+</body></html>

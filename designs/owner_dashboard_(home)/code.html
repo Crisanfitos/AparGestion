@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Apargestión - Owner Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0000cc",
+                        "primary-hover": "#000099",
+                        "background-light": "#ffffff", 
+                        "background-dark": "#121212",
+                        "text-main": "#000000",
+                        "text-sub": "#1a1a1a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "md": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Ensuring accessibility standards */
+        .min-touch-target {
+            min-height: 60px;
+            min-width: 60px;
+        }
+        body {
+            /* Force large base font size for accessibility */
+            font-size: 18px; 
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen relative flex flex-col font-display overflow-x-hidden pb-32">
+<!-- Header Section -->
+<header class="p-6 pt-10 w-full bg-white dark:bg-background-dark border-b-2 border-gray-100 dark:border-gray-800">
+<div class="flex items-center gap-6">
+<div class="relative shrink-0">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-24 w-24 border-4 border-primary/10" data-alt="Portrait of an elderly smiling man, the property owner" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBC_NX9FfzW-gK7ruvlqrKhOpJ1rvSxtEIGxrBBAhQZDktcJ1vRb61al-Q4W3x7Xq3ey01n09PejGripFJAx5q4VHtpDrHyow9VZwiWcnFx1W8bgricXErfRy0EjOLaCF7oEc-CUWuEQ2yK3d6cvxmTw-iCWe7uuJhGCZhNyMc03HoueVXQedDRSmIbI1spXSC88vCH64ZSmxrmXh9Q-JX5mTNxxz0PsRJyi2yivBE4jeKM-zXpekks0JjBmCccoZ3ek3ne8l6Wtxxr");'>
+</div>
+</div>
+<div class="flex flex-col justify-center gap-2">
+<h1 class="text-text-main dark:text-white text-3xl font-bold leading-tight tracking-tight">
+                    Hola, Antonio
+                </h1>
+<p class="text-text-sub dark:text-gray-300 text-xl font-medium leading-normal">
+                    Bienvenido a tu panel
+                </p>
+</div>
+</div>
+</header>
+<!-- Status Section -->
+<section class="flex flex-col w-full px-6 pt-8">
+<h2 class="text-text-main dark:text-white text-[28px] font-bold leading-tight mb-4">
+            Estado Actual
+        </h2>
+<!-- High Contrast Card -->
+<div class="flex flex-col gap-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
+<div class="flex flex-col gap-4">
+<div class="flex items-start gap-4">
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-5xl shrink-0 mt-1">
+                        meeting_room
+                    </span>
+<div class="flex flex-col gap-2">
+<p class="text-text-main dark:text-white text-2xl font-bold leading-tight">
+                            Próxima Entrada
+                        </p>
+<p class="text-text-sub dark:text-gray-200 text-xl font-medium leading-relaxed">
+                            Mañana a las 15:00
+                            <br/>
+<span class="font-normal text-gray-700 dark:text-gray-400">Huésped: Juan Pérez</span>
+</p>
+</div>
+</div>
+<!-- Explicit Action Button -->
+<button class="mt-2 min-touch-target w-full bg-primary hover:bg-primary-hover active:scale-[0.99] transition-transform text-white text-xl font-bold rounded-lg flex items-center justify-center gap-3 py-4 shadow-md">
+<span>Ver Detalles</span>
+<span class="material-symbols-outlined text-3xl">arrow_forward</span>
+</button>
+</div>
+<!-- Context Image -->
+<div class="w-full h-48 mt-2 bg-center bg-no-repeat bg-cover rounded-lg border border-gray-200" data-alt="Modern living room interior of the rental apartment" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC6Ihzv_CSp5DyRLUHN9pp_23q_8K77eSvCuC-TNeGk4VIZEuXYaegWORYSYukUxZZASEA6RDVoU5T98MKAKfIzZkyimHDjycUHNrRfREOs1X6w5zLUOn4kIRR3wwX93xEPPsyVPkgTCAcsZiVTboBfoE3hjbHM4bzZMWQt4mVVFgaMp8Bggiod2kT1Tww--rXqZz2cPs4zUiNxEXNhsLNKJNAm3Ik_9h5vwKGXLeTQ60gsei0hoUHrnotx0PG1vZaHNKrTLJbsOwdg");'>
+</div>
+</div>
+</section>
+<div class="h-6 w-full"></div>
+<!-- Quick Actions Section -->
+<section class="flex flex-col w-full px-6">
+<h2 class="text-text-main dark:text-white text-[28px] font-bold leading-tight mb-4">
+            Acciones Rápidas
+        </h2>
+<div class="grid grid-cols-1 @[400px]:grid-cols-2 gap-4">
+<!-- Action Button 1 -->
+<button class="min-touch-target flex flex-col gap-4 rounded-xl border-2 border-primary/30 bg-white dark:bg-gray-900 p-6 items-center text-center active:bg-gray-50 dark:active:bg-gray-800 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+<div class="bg-primary/10 p-4 rounded-full">
+<span class="material-symbols-outlined text-primary text-[40px]">calendar_month</span>
+</div>
+<span class="text-primary dark:text-blue-300 text-xl font-bold leading-tight">Ver Calendario</span>
+</button>
+<!-- Action Button 2 -->
+<button class="min-touch-target flex flex-col gap-4 rounded-xl border-2 border-primary/30 bg-white dark:bg-gray-900 p-6 items-center text-center active:bg-gray-50 dark:active:bg-gray-800 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+<div class="bg-primary/10 p-4 rounded-full">
+<span class="material-symbols-outlined text-primary text-[40px]">receipt_long</span>
+</div>
+<span class="text-primary dark:text-blue-300 text-xl font-bold leading-tight">Crear Factura</span>
+</button>
+<!-- Action Button 3 -->
+<button class="min-touch-target flex flex-col gap-4 rounded-xl border-2 border-primary/30 bg-white dark:bg-gray-900 p-6 items-center text-center active:bg-gray-50 dark:active:bg-gray-800 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.05)] @[400px]:col-span-2">
+<div class="bg-primary/10 p-4 rounded-full">
+<span class="material-symbols-outlined text-primary text-[40px]">edit_document</span>
+</div>
+<span class="text-primary dark:text-blue-300 text-xl font-bold leading-tight">Nuevo Contrato</span>
+</button>
+</div>
+</section>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full h-[100px] bg-white dark:bg-[#1e1e2e] border-t-2 border-gray-200 dark:border-gray-700 z-50 shadow-[0_-4px_6px_rgba(0,0,0,0.05)] pb-safe">
+<div class="flex items-center justify-around h-full w-full max-w-lg mx-auto px-2">
+<a class="flex flex-col items-center justify-center gap-1 min-touch-target w-full text-primary" href="#">
+<span class="material-symbols-outlined text-[36px] font-bold fill-1">home</span>
+<span class="text-[16px] font-bold">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 min-touch-target w-full text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[36px]">apartment</span>
+<span class="text-[16px] font-bold">Propiedades</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 min-touch-target w-full text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[36px]">payments</span>
+<span class="text-[16px] font-bold">Finanzas</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 min-touch-target w-full text-gray-600 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[36px]">person</span>
+<span class="text-[16px] font-bold">Perfil</span>
+</a>
+</div>
+</nav>
+<!-- Safe area spacing for nav bar overlay -->
+<div class="h-[40px]"></div>
+</body></html>
