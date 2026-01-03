@@ -43,11 +43,6 @@ export default function DocumentsScreen() {
     const [templateUri, setTemplateUri] = useState<string | null>(null);
     const [templateName, setTemplateName] = useState<string | null>(null);
 
-    // Mock recent documents
-    const [recentDocs, setRecentDocs] = useState([
-        { id: '1', type: 'Factura', name: 'FAC-359625', date: '30/12/2025', client: 'cristian' },
-    ]);
-
     const handleInvoiceGenerate = async () => {
         if (!invoiceForm.clientName || !invoiceForm.clientId) {
             Alert.alert('Error', 'Por favor complete los datos del cliente');
@@ -72,18 +67,8 @@ export default function DocumentsScreen() {
             });
 
             if (fileUri) {
-                setRecentDocs([
-                    {
-                        id: Date.now().toString(),
-                        type: 'Factura',
-                        name: `FAC-NEW`,
-                        date: new Date().toLocaleDateString('es-ES'),
-                        client: invoiceForm.clientName
-                    },
-                    ...recentDocs
-                ]);
                 setShowInvoiceModal(false);
-                Alert.alert('Éxito', 'Factura generada y guardada en documentos recientes.');
+                Alert.alert('✅ Éxito', 'Factura generada correctamente.');
             }
         } catch (error) {
             console.error(error);
@@ -138,18 +123,8 @@ export default function DocumentsScreen() {
             });
 
             if (result.success) {
-                setRecentDocs([
-                    {
-                        id: Date.now().toString(),
-                        type: 'Contrato',
-                        name: `CONTRATO-${contractForm.guestName.split(' ')[0].toUpperCase()}`,
-                        date: new Date().toLocaleDateString('es-ES'),
-                        client: contractForm.guestName
-                    },
-                    ...recentDocs
-                ]);
                 setShowContractModal(false);
-                Alert.alert('Éxito', 'Contrato generado correctamente');
+                Alert.alert('✅ Éxito', 'Contrato generado correctamente.');
             }
         } catch (error) {
             Alert.alert('Error', 'No se pudo generar el contrato. Verifica que la plantilla sea un .docx válido.');
@@ -205,6 +180,49 @@ export default function DocumentsScreen() {
                             </Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* Secondary Row - Saved Templates & History */}
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                        {/* Saved Templates (Local storage) */}
+                        <TouchableOpacity
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#FF9800',
+                                padding: 14,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                            }}
+                            onPress={() => router.push('/template-editor?showList=true')}
+                        >
+                            <Text style={{ fontSize: 24 }}>📁</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
+                                Mis Plantillas
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                                Ver guardadas
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Document History */}
+                        <TouchableOpacity
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#9C27B0',
+                                padding: 14,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                            }}
+                            onPress={() => router.push('/document-history')}
+                        >
+                            <Text style={{ fontSize: 24 }}>📚</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
+                                Historial
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                                Documentos generados
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Invoices Section */}
@@ -246,26 +264,30 @@ export default function DocumentsScreen() {
 
                 <View style={styles.spacer} />
 
-                {/* Recent Documents */}
-                <HighContrastCard title="📂 Documentos Recientes">
-                    {recentDocs.length === 0 ? (
-                        <Text style={styles.emptyText}>No hay documentos recientes</Text>
-                    ) : (
-                        recentDocs.map((doc) => (
-                            <View key={doc.id} style={styles.docItem}>
-                                <View style={styles.docIconContainer}>
-                                    <Text style={styles.docIcon}>
-                                        {doc.type === 'Factura' ? '📄' : '📝'}
-                                    </Text>
-                                </View>
-                                <View style={styles.docInfo}>
-                                    <Text style={styles.docName}>{doc.type} {doc.name}</Text>
-                                    <Text style={styles.docMeta}>{doc.client} • {doc.date}</Text>
-                                </View>
-                            </View>
-                        ))
-                    )}
-                </HighContrastCard>
+                {/* Link to Document History */}
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: colors.background,
+                        borderRadius: borderRadius.lg,
+                        padding: spacing.lg,
+                        borderWidth: 2,
+                        borderColor: colors.border,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                    }}
+                    onPress={() => router.push('/document-history')}
+                >
+                    <Text style={{ fontSize: 32, marginRight: spacing.md }}>📚</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
+                            Historial de Documentos
+                        </Text>
+                        <Text style={{ fontSize: 14, color: colors.textSecondary }}>
+                            Ver todos los documentos generados
+                        </Text>
+                    </View>
+                    <Text style={{ fontSize: 20, color: colors.textSecondary }}>→</Text>
+                </TouchableOpacity>
             </ScrollView >
 
             {/* Invoice Modal */}

@@ -3,113 +3,138 @@
  * - Large touch targets (60dp+)
  * - High contrast colors
  * - Biometric authentication option
- * - Simple, clear layout
+ * - Password show/hide toggle
  */
-import React, { useState, useEffect } from 'react';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    StyleSheet,
-    ScrollView,
+    Alert,
     KeyboardAvoidingView,
     Platform,
-    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import * as LocalAuthentication from 'expo-local-authentication';
 
-import { colors, typography, spacing, borderRadius, touchTarget } from '@/src/core/theme';
-import { LargeTextButton } from '@/src/components/accessible';
+import { LargeTextButton, PasswordInput } from '@/src/components/accessible';
+import {
+    biometricLogin,
+    checkBiometricAvailability,
+    hasStoredCredentials
+} from '@/src/core/services/biometricService';
 import { useAuthStore } from '@/src/core/stores';
-import { supabase } from '@/src/core/api/supabase';
+import { borderRadius, colors, spacing, touchTarget, typography } from '@/src/core/theme';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [fullName, setFullName] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
+
+    // Biometric state
     const [biometricAvailable, setBiometricAvailable] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [biometricEnabled, setBiometricEnabled] = useState(false);
+    const [checkingBiometric, setCheckingBiometric] = useState(true);
 
-    const { setUser } = useAuthStore();
+    const { login, register, isLoading, error, clearError } = useAuthStore();
 
-    useEffect(() => {
-        checkBiometricAvailability();
+    // Check biometric availability and if credentials are stored locally
+    // Note: We check stored credentials, not Supabase preference (which requires auth)
+    const checkBiometric = useCallback(async () => {
+        setCheckingBiometric(true);
+
+        const status = await checkBiometricAvailability();
+        const hasCredentials = await hasStoredCredentials();
+
+        setBiometricAvailable(status.isAvailable && status.isEnrolled);
+        // If device has biometric AND we have stored credentials, enable biometric login
+        setBiometricEnabled(status.isAvailable && status.isEnrolled && hasCredentials);
+
+        setCheckingBiometric(false);
     }, []);
 
-    const checkBiometricAvailability = async () => {
-        const compatible = await LocalAuthentication.hasHardwareAsync();
-        const enrolled = await LocalAuthentication.isEnrolledAsync();
-        setBiometricAvailable(compatible && enrolled);
-    };
+    useEffect(() => {
+        checkBiometric();
+    }, [checkBiometric]);
+
+    useEffect(() => {
+        // Clear error when switching between login/register
+        clearError();
+    }, [isRegistering]);
 
     const handleLogin = async () => {
         if (!email || !password) {
-            setErrorMessage('Por favor, complete todos los campos');
+            Alert.alert('Aviso', 'Por favor, complete todos los campos');
             return;
         }
 
-        setIsLoading(true);
-        setErrorMessage('');
+        const success = await login(email, password);
 
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+        if (success) {
+            router.replace('/(tabs)');
+        }
+    };
 
-            if (error) {
-                setErrorMessage('Email o contraseña incorrectos');
-                return;
-            }
+    const handleRegister = async () => {
+        if (!email || !password) {
+            Alert.alert('Aviso', 'Por favor, complete todos los campos');
+            return;
+        }
 
-            if (data.user) {
-                setUser({
-                    id: data.user.id,
-                    email: data.user.email || '',
-                    name: data.user.user_metadata?.name || 'Usuario',
-                });
-                router.replace('/(tabs)');
-            }
-        } catch (error) {
-            setErrorMessage('Error de conexión. Inténtelo de nuevo.');
-        } finally {
-            setIsLoading(false);
+        if (password.length < 6) {
+            Alert.alert('Aviso', 'La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        const success = await register(email, password, fullName);
+
+        if (success) {
+            Alert.alert(
+                '✅ Cuenta Creada',
+                'Revisa tu email para confirmar tu cuenta. Después podrás iniciar sesión.',
+                [{ text: 'OK', onPress: () => setIsRegistering(false) }]
+            );
         }
     };
 
     const handleBiometricLogin = async () => {
         try {
-            const result = await LocalAuthentication.authenticateAsync({
-                promptMessage: 'Inicie sesión con su huella o cara',
-                cancelLabel: 'Cancelar',
-                fallbackLabel: 'Usar contraseña',
-            });
+            const result = await biometricLogin();
 
-            if (result.success) {
-                // TODO: Retrieve stored credentials and login
-                // For now, show demo login
-                setUser({
-                    id: 'demo-user',
-                    email: 'demo@apargestion.app',
-                    name: 'Usuario Demo',
-                });
-                router.replace('/(tabs)');
+            if (result.success && result.credentials) {
+                // Use stored credentials to login
+                const loginSuccess = await login(
+                    result.credentials.email,
+                    result.credentials.password
+                );
+
+                if (loginSuccess) {
+                    router.replace('/(tabs)');
+                } else {
+                    Alert.alert(
+                        'Error de credenciales',
+                        'Las credenciales guardadas no son válidas. Inicia sesión manualmente.'
+                    );
+                }
+            } else {
+                if (result.error) {
+                    Alert.alert('Error', result.error);
+                }
             }
-        } catch (error) {
+        } catch (error: any) {
             Alert.alert('Error', 'No se pudo usar la autenticación biométrica');
         }
     };
 
-    const handleDemoLogin = () => {
-        // Demo login for testing
-        setUser({
-            id: 'demo-user',
-            email: 'demo@apargestion.app',
-            name: 'Usuario Demo',
-        });
-        router.replace('/(tabs)');
+    const toggleMode = () => {
+        setIsRegistering(!isRegistering);
+        setEmail('');
+        setPassword('');
+        setFullName('');
     };
 
     return (
@@ -131,74 +156,101 @@ export default function LoginScreen() {
                         </Text>
                     </View>
 
-                    {/* Login Form */}
+                    {/* Login/Register Form */}
                     <View style={styles.form}>
+                        <Text style={styles.formTitle}>
+                            {isRegistering ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                        </Text>
+
+                        {isRegistering && (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>Nombre Completo</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    placeholder="Tu nombre"
+                                    placeholderTextColor={colors.placeholder}
+                                    autoCapitalize="words"
+                                    accessibilityLabel="Nombre completo"
+                                />
+                            </View>
+                        )}
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Email</Text>
                             <TextInput
                                 style={styles.input}
                                 value={email}
                                 onChangeText={setEmail}
-                                placeholder="su.email@ejemplo.com"
+                                placeholder="tu.email@ejemplo.com"
                                 placeholderTextColor={colors.placeholder}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}
                                 accessibilityLabel="Dirección de email"
-                                accessibilityHint="Introduzca su email para iniciar sesión"
                             />
                         </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Contraseña</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={password}
-                                onChangeText={setPassword}
-                                placeholder="Su contraseña"
-                                placeholderTextColor={colors.placeholder}
-                                secureTextEntry
-                                accessibilityLabel="Contraseña"
-                                accessibilityHint="Introduzca su contraseña"
-                            />
-                        </View>
+                        <PasswordInput
+                            value={password}
+                            onChangeText={setPassword}
+                            label="Contraseña"
+                            placeholder="Tu contraseña"
+                        />
 
-                        {errorMessage ? (
+                        {error ? (
                             <View style={styles.errorContainer}>
                                 <Text style={styles.errorIcon}>⚠️</Text>
-                                <Text style={styles.errorText}>{errorMessage}</Text>
+                                <Text style={styles.errorText}>{error}</Text>
                             </View>
                         ) : null}
 
                         <View style={styles.buttonContainer}>
                             <LargeTextButton
-                                title={isLoading ? 'Entrando...' : 'Entrar'}
-                                onPress={handleLogin}
+                                title={isLoading
+                                    ? (isRegistering ? 'Creando...' : 'Entrando...')
+                                    : (isRegistering ? 'Crear Cuenta' : 'Entrar')
+                                }
+                                onPress={isRegistering ? handleRegister : handleLogin}
                                 disabled={isLoading}
-                                accessibilityHint="Pulsar para iniciar sesión"
                             />
                         </View>
 
-                        {biometricAvailable && (
+                        {/* Biometric Login Button - only show if enabled and credentials stored */}
+                        {!isRegistering && biometricEnabled && (
                             <View style={styles.buttonContainer}>
                                 <LargeTextButton
                                     title="🔐 Entrar con Huella/Cara"
                                     onPress={handleBiometricLogin}
                                     variant="secondary"
-                                    accessibilityHint="Usar huella dactilar o reconocimiento facial"
+                                    disabled={isLoading}
                                 />
                             </View>
                         )}
 
-                        {/* Demo login for development */}
-                        <View style={styles.demoContainer}>
-                            <Text style={styles.demoText}>¿Primera vez?</Text>
-                            <LargeTextButton
-                                title="Probar sin cuenta"
-                                onPress={handleDemoLogin}
-                                variant="secondary"
-                                accessibilityHint="Entrar en modo demostración"
-                            />
+                        {/* Show hint if biometric available but not enabled */}
+                        {!isRegistering && biometricAvailable && !biometricEnabled && !checkingBiometric && (
+                            <View style={styles.biometricHint}>
+                                <Text style={styles.biometricHintText}>
+                                    💡 Puedes activar el login con huella en Configuración después de iniciar sesión
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Toggle Login/Register */}
+                        <View style={styles.toggleContainer}>
+                            <Text style={styles.toggleText}>
+                                {isRegistering
+                                    ? '¿Ya tienes cuenta?'
+                                    : '¿No tienes cuenta?'
+                                }
+                            </Text>
+                            <TouchableOpacity onPress={toggleMode}>
+                                <Text style={styles.toggleLink}>
+                                    {isRegistering ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -207,9 +259,18 @@ export default function LoginScreen() {
                         <Text style={styles.footerText}>
                             ¿Problemas para acceder?
                         </Text>
-                        <Text style={styles.footerLink}>
-                            Contacte con soporte
-                        </Text>
+                        <TouchableOpacity onPress={() => {
+                            if (email) {
+                                useAuthStore.getState().forgotPassword(email);
+                                Alert.alert('Email Enviado', 'Revisa tu correo para restablecer la contraseña');
+                            } else {
+                                Alert.alert('Aviso', 'Introduce tu email primero');
+                            }
+                        }}>
+                            <Text style={styles.footerLink}>
+                                Olvidé mi contraseña
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -254,14 +315,21 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         alignSelf: 'center',
     },
-    inputGroup: {
+    formTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: colors.text,
+        textAlign: 'center',
         marginBottom: spacing.lg,
+    },
+    inputGroup: {
+        marginBottom: spacing.md,
     },
     label: {
         fontSize: typography.fontSize.body,
         fontWeight: '600',
         color: colors.text,
-        marginBottom: spacing.sm,
+        marginBottom: spacing.xs,
     },
     input: {
         height: touchTarget.minimum,
@@ -296,14 +364,31 @@ const styles = StyleSheet.create({
     buttonContainer: {
         marginTop: spacing.md,
     },
-    demoContainer: {
+    biometricHint: {
+        marginTop: spacing.lg,
+        padding: spacing.md,
+        backgroundColor: colors.backgroundSecondary,
+        borderRadius: borderRadius.md,
+    },
+    biometricHintText: {
+        fontSize: typography.fontSize.small,
+        color: colors.textSecondary,
+        textAlign: 'center',
+    },
+    toggleContainer: {
         marginTop: spacing.xl,
         alignItems: 'center',
     },
-    demoText: {
+    toggleText: {
         fontSize: typography.fontSize.body,
         color: colors.textSecondary,
-        marginBottom: spacing.sm,
+    },
+    toggleLink: {
+        fontSize: typography.fontSize.body,
+        color: colors.primary,
+        fontWeight: 'bold',
+        marginTop: spacing.sm,
+        padding: spacing.sm,
     },
     footer: {
         alignItems: 'center',
@@ -318,5 +403,6 @@ const styles = StyleSheet.create({
         color: colors.primary,
         fontWeight: '600',
         marginTop: spacing.sm,
+        padding: spacing.sm,
     },
 });

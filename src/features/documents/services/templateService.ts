@@ -289,6 +289,7 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 /**
  * Generates a PDF from HTML content with variables replaced
+ * Saves to Downloads folder on Android
  */
 export async function generatePdfFromTemplate(
     html: string,
@@ -333,19 +334,48 @@ export async function generatePdfFromTemplate(
     // Generate PDF
     const { uri: pdfUri } = await Print.printToFileAsync({ html: fullHtml });
 
-    // Save locally
+    // Generate filename
     const safeName = (filename || 'Documento').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g, '').replace(/\s+/g, '_');
     const finalFilename = `${safeName}_${Date.now()}.pdf`;
-    const localPath = `${FileSystem.documentDirectory}${finalFilename}`;
 
+    // Save to app's document directory
+    const localPath = `${FileSystem.documentDirectory}${finalFilename}`;
     await FileSystem.moveAsync({ from: pdfUri, to: localPath });
 
-    // Offer share
-    if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(localPath, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Guardar o Compartir Documento',
-        });
+    // Try to save to Downloads using SAF (Storage Access Framework)
+    // This opens the native file picker to let user choose save location
+    try {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+        if (permissions.granted) {
+            // Read the PDF content
+            const pdfContent = await FileSystem.readAsStringAsync(localPath, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            // Create file in the user-selected directory
+            const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                permissions.directoryUri,
+                finalFilename,
+                'application/pdf'
+            );
+
+            // Write the content
+            await FileSystem.writeAsStringAsync(fileUri, pdfContent, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            console.log('PDF saved to Downloads:', fileUri);
+        }
+    } catch (safError) {
+        console.log('SAF not available or user cancelled, using fallback share:', safError);
+        // Fallback to share dialog if SAF fails
+        if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(localPath, {
+                mimeType: 'application/pdf',
+                dialogTitle: 'Guardar Documento',
+            });
+        }
     }
 
     return { filepath: localPath, filename: finalFilename };

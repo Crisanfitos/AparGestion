@@ -10,6 +10,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, Touc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { borderRadius, colors, spacing } from '@/src/core/theme';
+import { uploadAndRecordDocument } from '@/src/features/documents/services/documentHistoryService';
 import {
     generatePdfFromTemplate,
     listTemplates,
@@ -100,10 +101,43 @@ export default function TemplateFillScreen() {
         try {
             const result = await generatePdfFromTemplate(template.html, values, template.name);
 
+            // Determine document type from template name
+            let docType: 'contract' | 'invoice' | 'checkin' | 'other' = 'other';
+            const nameLower = template.name.toLowerCase();
+            if (nameLower.includes('contrato') || nameLower.includes('contract')) {
+                docType = 'contract';
+            } else if (nameLower.includes('factura') || nameLower.includes('invoice')) {
+                docType = 'invoice';
+            } else if (nameLower.includes('checkin') || nameLower.includes('check-in') || nameLower.includes('entrada')) {
+                docType = 'checkin';
+            }
+
+            // Check if template_id is a valid UUID (Supabase format)
+            // Local templates use format like "template_1767445623719" which is not valid
+            const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(template.id);
+
+            // Record in document history
+            // Upload and record in document history
+            const recordResult = await uploadAndRecordDocument(result.filepath, {
+                title: result.filename,
+                document_type: docType,
+                template_id: isValidUuid ? template.id : undefined,
+                variables_used: values,
+            });
+
+            console.log('Record document result:', recordResult);
+
+            if (!recordResult.success) {
+                console.error('Failed to record document:', recordResult.error);
+            }
+
             Alert.alert(
                 '✅ PDF Generado',
-                `El documento se ha creado correctamente:\n\n${result.filename}`,
-                [{ text: 'OK' }]
+                `El documento se ha creado y guardado en el historial.\n\n${result.filename}`,
+                [{
+                    text: 'OK',
+                    onPress: () => router.replace('/(tabs)/documents')
+                }]
             );
         } catch (error) {
             console.error(error);

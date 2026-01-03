@@ -7,12 +7,12 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
-import { colors } from '@/src/core/theme';
 import { useAuthStore } from '@/src/core/stores';
+import { colors } from '@/src/core/theme';
 
 export {
   // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -68,17 +68,13 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated, isLoading, setLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
-  // Auto-set loading to false on mount for demo purposes
+  // Initialize auth state on mount
   useEffect(() => {
-    // Simulate checking stored session
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    initialize();
   }, []);
 
   // Handle auth state navigation

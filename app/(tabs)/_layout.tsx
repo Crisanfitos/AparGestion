@@ -1,9 +1,9 @@
-import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
+import React from 'react';
 
-import { colors, typography, spacing } from '@/src/core/theme';
 import { useColorScheme } from '@/components/useColorScheme';
+import { colors, typography } from '@/src/core/theme';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -49,7 +49,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
@@ -78,13 +78,6 @@ export default function TabLayout() {
           title: 'Perfil',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
           tabBarAccessibilityLabel: 'Configuración y perfil',
-        }}
-      />
-      {/* Hide old index */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

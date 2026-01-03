@@ -6,7 +6,7 @@
  * - Load saved templates
  */
 import * as DocumentPicker from 'expo-document-picker';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor';
@@ -24,6 +24,7 @@ import {
 
 export default function TemplateEditorScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams<{ showList?: string }>();
     const richTextRef = useRef<RichEditor>(null);
 
     // Template state
@@ -40,10 +41,14 @@ export default function TemplateEditorScreen() {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [newTemplateName, setNewTemplateName] = useState('');
 
-    // Load saved templates on mount
+    // Load saved templates on mount and check if should show list
     useEffect(() => {
         loadSavedTemplates();
-    }, []);
+        // If showList param, open the templates modal automatically
+        if (params.showList === 'true') {
+            setShowTemplatesModal(true);
+        }
+    }, [params.showList]);
 
     const loadSavedTemplates = async () => {
         const templates = await listTemplates();
