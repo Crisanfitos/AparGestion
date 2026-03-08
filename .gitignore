@@ -53,3 +53,9 @@ pruebasICAAL/
 
 # design
 designs/
+
+# vscode
+.vscode/
+
+# claude
+.claude/
