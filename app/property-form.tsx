@@ -22,6 +22,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LargeTextButton } from '@/src/components/accessible';
 import { borderRadius, colors, spacing, touchTarget } from '@/src/core/theme';
+import {
+    createIcalSync,
+    deleteIcalSync,
+    getIcalSyncs,
+    IcalSync
+} from '@/src/features/calendar/services/icalService';
 import { isValidBookingUrl, scrapeBookingProperty } from '@/src/features/properties/bookingScraper';
 import {
     createProperty,
@@ -59,12 +65,65 @@ export default function PropertyFormScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    // iCal State
+    const [icalSyncs, setIcalSyncs] = useState<IcalSync[]>([]);
+    const [newIcalUrl, setNewIcalUrl] = useState('');
+    const [isAddingIcal, setIsAddingIcal] = useState(false);
+
     // Load existing property data if editing
     useEffect(() => {
         if (params.id) {
             loadProperty(params.id);
+            loadIcalSyncs(params.id);
         }
     }, [params.id]);
+
+    const loadIcalSyncs = async (id: string) => {
+        const result = await getIcalSyncs(id);
+        if (result.success && result.data) {
+            setIcalSyncs(result.data);
+        }
+    };
+
+    const handleAddIcal = async () => {
+        if (!params.id) return;
+        if (!newIcalUrl.trim()) {
+            Alert.alert('Error', 'Introduce una URL válida');
+            return;
+        }
+
+        setIsAddingIcal(true);
+        const result = await createIcalSync({
+            property_id: params.id,
+            source: 'booking', // Default for now, could add selector later
+            ical_url: newIcalUrl.trim()
+        });
+        setIsAddingIcal(false);
+
+        if (result.success && result.data) {
+            setNewIcalUrl('');
+            setIcalSyncs([...icalSyncs, result.data]);
+            Alert.alert('Éxito', 'Calendario añadido correctamente');
+        } else {
+            Alert.alert('Error', result.error || 'No se pudo añadir el calendario');
+        }
+    };
+
+    const handleDeleteIcal = async (id: string) => {
+        Alert.alert('Eliminar', '¿Seguro que quieres eliminar este calendario?', [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+                text: 'Eliminar', style: 'destructive', onPress: async () => {
+                    const result = await deleteIcalSync(id);
+                    if (result.success) {
+                        setIcalSyncs(prev => prev.filter(s => s.id !== id));
+                    } else {
+                        Alert.alert('Error', 'No se pudo eliminar');
+                    }
+                }
+            }
+        ]);
+    };
 
     const loadProperty = async (id: string) => {
         setIsLoading(true);
@@ -411,6 +470,48 @@ export default function PropertyFormScreen() {
                         </View>
                     )}
 
+                    {/* iCal Sync Section - Only when editing */}
+                    {isEditing && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>📅 Sincronización de Calendarios</Text>
+                            <Text style={styles.importHint}>
+                                Añade los enlaces iCal de Booking, Airbnb, etc. para evitar reservas duplicadas.
+                            </Text>
+
+                            {/* List existing */}
+                            {icalSyncs.map((sync) => (
+                                <View key={sync.id} style={styles.icalRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.icalSource}>{sync.source.toUpperCase()}</Text>
+                                        <Text style={styles.icalUrl} numberOfLines={1}>{sync.ical_url}</Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => handleDeleteIcal(sync.id)} style={styles.deleteBtn}>
+                                        <Text style={{ color: 'red' }}>🗑️</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+
+                            {/* Add New */}
+                            <View style={styles.addIcalContainer}>
+                                <TextInput
+                                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                                    value={newIcalUrl}
+                                    onChangeText={setNewIcalUrl}
+                                    placeholder="https://.../calendar.ics"
+                                    placeholderTextColor={colors.placeholder}
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity
+                                    style={[styles.importButton, { padding: 10, borderRadius: 8, height: touchTarget.minimum }]}
+                                    onPress={handleAddIcal}
+                                    disabled={isAddingIcal}
+                                >
+                                    {isAddingIcal ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>+</Text>}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
                     {/* Status */}
                     <View style={styles.section}>
                         <View style={styles.switchRow}>
@@ -623,5 +724,30 @@ const styles = StyleSheet.create({
     },
     spacer: {
         height: spacing.xxl,
+    },
+    icalRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.sm,
+        backgroundColor: colors.backgroundSecondary,
+        borderRadius: borderRadius.md,
+        marginBottom: spacing.sm,
+    },
+    icalSource: {
+        fontWeight: 'bold',
+        fontSize: 12,
+        color: colors.primary,
+    },
+    icalUrl: {
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    deleteBtn: {
+        padding: spacing.sm,
+    },
+    addIcalContainer: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginTop: spacing.sm,
     },
 });

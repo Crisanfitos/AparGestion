@@ -137,92 +137,6 @@ export default function DocumentsScreen() {
 
                 <View style={styles.header}>
                     <Text style={styles.title}>Gestión Documental</Text>
-
-                    {/* Main Actions - Two columns */}
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                        {/* Template Editor */}
-                        <TouchableOpacity
-                            style={{
-                                flex: 1,
-                                backgroundColor: colors.primary,
-                                padding: 14,
-                                borderRadius: 12,
-                                alignItems: 'center',
-                            }}
-                            onPress={() => router.push('/template-editor')}
-                        >
-                            <Text style={{ fontSize: 24 }}>📝</Text>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
-                                Editor de Plantillas
-                            </Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
-                                Crear / Editar
-                            </Text>
-                        </TouchableOpacity>
-
-                        {/* Fill Template */}
-                        <TouchableOpacity
-                            style={{
-                                flex: 1,
-                                backgroundColor: '#4CAF50',
-                                padding: 14,
-                                borderRadius: 12,
-                                alignItems: 'center',
-                            }}
-                            onPress={() => router.push('/template-fill')}
-                        >
-                            <Text style={{ fontSize: 24 }}>📄</Text>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
-                                Rellenar Plantilla
-                            </Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
-                                Generar PDF
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Secondary Row - Saved Templates & History */}
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                        {/* Saved Templates (Local storage) */}
-                        <TouchableOpacity
-                            style={{
-                                flex: 1,
-                                backgroundColor: '#FF9800',
-                                padding: 14,
-                                borderRadius: 12,
-                                alignItems: 'center',
-                            }}
-                            onPress={() => router.push('/template-editor?showList=true')}
-                        >
-                            <Text style={{ fontSize: 24 }}>📁</Text>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
-                                Mis Plantillas
-                            </Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
-                                Ver guardadas
-                            </Text>
-                        </TouchableOpacity>
-
-                        {/* Document History */}
-                        <TouchableOpacity
-                            style={{
-                                flex: 1,
-                                backgroundColor: '#9C27B0',
-                                padding: 14,
-                                borderRadius: 12,
-                                alignItems: 'center',
-                            }}
-                            onPress={() => router.push('/document-history')}
-                        >
-                            <Text style={{ fontSize: 24 }}>📚</Text>
-                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
-                                Historial
-                            </Text>
-                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
-                                Documentos generados
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
                 {/* Invoices Section */}
@@ -239,27 +153,75 @@ export default function DocumentsScreen() {
 
                 <View style={styles.spacer} />
 
-                {/* Contracts Section */}
+                {/* Contracts Section - Only Mis Plantillas and Rellenar Plantilla */}
                 <HighContrastCard title="📝 Contratos">
                     <Text style={styles.description}>
-                        Genera contratos utilizando tu propia plantilla Word (.docx).
+                        Gestiona y genera contratos utilizando tus plantillas personalizadas.
                     </Text>
-                    {templateName ? (
-                        <View style={styles.templateInfo}>
-                            <Text style={styles.templateLabel}>Plantilla cargada:</Text>
-                            <Text style={styles.templateName}>{templateName}</Text>
-                            <TouchableOpacity onPress={() => setTemplateUri(null)}>
-                                <Text style={styles.changeTemplate}>Cambiar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : null}
 
-                    <LargeTextButton
-                        title="Nuevo Contrato"
-                        onPress={() => setShowContractModal(true)}
-                        variant="secondary"
-                        accessibilityHint="Abrir formulario para generar nuevo contrato"
-                    />
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: spacing.sm }}>
+                        {/* Mis Plantillas (Contratos) */}
+                        <TouchableOpacity
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#FF9800',
+                                padding: 14,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                            }}
+                            onPress={() => router.push('/template-editor?showList=true&filterType=contract')}
+                        >
+                            <Text style={{ fontSize: 24 }}>📁</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
+                                Mis Plantillas
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                                Ver contratos
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Rellenar Plantilla (Contratos) */}
+                        <TouchableOpacity
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#4CAF50',
+                                padding: 14,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                            }}
+                            onPress={() => router.push('/template-fill?filterType=contract')}
+                        >
+                            <Text style={{ fontSize: 24 }}>📄</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
+                                Rellenar Plantilla
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                                Generar PDF
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Second row - Drafts */}
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                        <TouchableOpacity
+                            style={{
+                                flex: 1,
+                                backgroundColor: '#9C27B0',
+                                padding: 14,
+                                borderRadius: 12,
+                                alignItems: 'center',
+                            }}
+                            onPress={() => router.push('/template-drafts?filterType=contract')}
+                        >
+                            <Text style={{ fontSize: 24 }}>📋</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>
+                                Borradores
+                            </Text>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                                Continuar editando
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </HighContrastCard>
 
                 <View style={styles.spacer} />

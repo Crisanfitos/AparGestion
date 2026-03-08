@@ -11,6 +11,8 @@ export interface GeneratedDocument {
     title: string;
     document_type: 'contract' | 'invoice' | 'checkin' | 'other';
     file_url?: string;
+    // Path in Supabase Storage (required for generating signed URLs)
+    storage_path?: string;
     file_name?: string;
     variables_used?: Record<string, any>;
     created_at: string;
@@ -118,7 +120,9 @@ export async function recordGeneratedDocument(doc: {
     template_id?: string;
     file_url?: string;
     file_name?: string;
+    storage_path?: string;
     variables_used?: Record<string, any>;
+    group_values_used?: Record<string, any>;
 }): Promise<DocumentHistoryResult> {
     try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -158,8 +162,11 @@ export async function uploadAndRecordDocument(
         title: string;
         document_type: GeneratedDocument['document_type'];
         template_id?: string;
+        file_url?: string;
+        storage_path?: string;
         file_name?: string;
         variables_used?: Record<string, any>;
+        group_values_used?: Record<string, any>;
     }
 ): Promise<DocumentHistoryResult> {
     try {
@@ -203,10 +210,11 @@ export async function uploadAndRecordDocument(
             .from('documents')
             .getPublicUrl(filePath);
 
-        // Record document with file URL
+        // Record document with file URL and storage path
         return recordGeneratedDocument({
             ...doc,
             file_url: urlData.publicUrl,
+            storage_path: filePath,
         });
     } catch (err: any) {
         console.error('Upload and record error:', err);

@@ -2,7 +2,9 @@
  * Document History Screen
  * Shows all generated documents with filtering and actions
  */
+import { supabase } from '@/src/core/api/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { Stack, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -10,6 +12,7 @@ import {
     ActivityIndicator,
     Alert,
     FlatList,
+    Platform,
     RefreshControl,
     StyleSheet,
     Text,
@@ -91,44 +94,67 @@ export default function DocumentHistoryScreen() {
     };
 
     const handleOpen = async (doc: GeneratedDocument) => {
-        if (doc.file_url) {
+        if (doc.file_url || doc.storage_path) {
             try {
-                // If remote URL (http/https), download first then open with system intent
-                if (doc.file_url.startsWith('http')) {
-                    setIsLoading(true);
+                let downloadUrl = doc.file_url;
 
-                    const fileExt = doc.file_name?.split('.').pop() || 'pdf';
-                    // Clean filename for local cache
-                    const cleanTitle = doc.title.replace(/[^a-zA-Z0-9]/g, '_');
-                    const filename = `${cleanTitle}_${Date.now()}.${fileExt}`;
-                    const localUri = `${FileSystem.cacheDirectory}${filename}`;
+                // If storage_path exists, generate a Signed URL (valid for 60 seconds)
+                // This works for PRIVATE buckets, unlike the public URL
+                if (doc.storage_path) {
+                    setIsLoading(true);
+                    const { data, error } = await supabase.storage
+                        .from('documents')
+                        .createSignedUrl(doc.storage_path, 60);
+
+                    if (error) {
+                        console.error('Signed URL error:', error);
+                        // Fallback to public URL if signed URL fails, but likely won't work for private bucket
+                    } else if (data?.signedUrl) {
+                        downloadUrl = data.signedUrl;
+                        console.log('Generated signed URL for secure access');
+                    }
+                }
+
+                // Define localUri in outer scope so it's accessible for opening
+                let localUri = doc.file_url || '';
+
+                if (downloadUrl && downloadUrl.startsWith('http')) {
+                    setIsLoading(true);
+                    // Use a very simple filename to avoid any issues
+                    const filename = `document_${Date.now()}.pdf`;
+                    localUri = `${FileSystem.documentDirectory}${filename}`;
 
                     try {
-                        const { uri } = await FileSystem.downloadAsync(doc.file_url, localUri);
-                        setIsLoading(false);
-
-                        // Open with system chooser (allows "Open with..." or "Share")
-                        if (await Sharing.isAvailableAsync()) {
-                            await Sharing.shareAsync(uri, {
-                                dialogTitle: doc.title,
-                                mimeType: 'application/pdf',
-                                UTI: 'com.adobe.pdf'
-                            });
-                        } else {
-                            Alert.alert('Error', 'No se puede abrir el archivo en este dispositivo');
-                        }
+                        // Download using the secure/signed URL
+                        await FileSystem.downloadAsync(downloadUrl, localUri);
                     } catch (downloadError) {
                         setIsLoading(false);
                         console.error('Download error:', downloadError);
-                        Alert.alert('Error de Descarga', 'No se pudo descargar el archivo. Verifique que el archivo existe y tiene permisos públicos.');
+                        Alert.alert('Error', 'Error en la descarga.');
+                        return;
+                    }
+                    setIsLoading(false);
+                }
+
+                if (Platform.OS === 'android') {
+                    try {
+                        const contentUri = await FileSystem.getContentUriAsync(localUri);
+                        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+                            data: contentUri,
+                            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+                            type: 'application/pdf',
+                        });
+                    } catch (e) {
+                        console.error('IntentLauncher error:', e);
+                        Alert.alert('Error', 'No se pudo abrir el visor de PDF');
                     }
                 } else {
-                    // Local file - use Sharing
-                    if (await Sharing.isAvailableAsync()) {
-                        await Sharing.shareAsync(doc.file_url, { dialogTitle: doc.title });
-                    } else {
-                        Alert.alert('Error', 'No se puede abrir el archivo local');
-                    }
+                    // iOS: Sharing handles "Open/Preview" well
+                    await Sharing.shareAsync(localUri, {
+                        dialogTitle: doc.title,
+                        mimeType: 'application/pdf',
+                        UTI: 'com.adobe.pdf'
+                    });
                 }
             } catch (err) {
                 setIsLoading(false);
@@ -255,6 +281,15 @@ export default function DocumentHistoryScreen() {
                             <Text style={styles.actionBtnText}>📤 Compartir</Text>
                         </TouchableOpacity>
                     </>
+                )}
+                {/* Reutilizar datos - only show if template_id exists */}
+                {item.template_id && (
+                    <TouchableOpacity
+                        style={[styles.actionBtn, styles.reuseBtn]}
+                        onPress={() => router.push(`/template-fill?fromDocumentId=${item.id}`)}
+                    >
+                        <Text style={styles.reuseBtnText}>🔄 Reutilizar</Text>
+                    </TouchableOpacity>
                 )}
                 <TouchableOpacity
                     style={[styles.actionBtn, styles.deleteBtn]}
@@ -461,5 +496,15 @@ const styles = StyleSheet.create({
         color: colors.textSecondary,
         marginTop: spacing.sm,
         textAlign: 'center',
+    },
+    reuseBtn: {
+        backgroundColor: '#E3F2FD',
+        borderWidth: 1,
+        borderColor: colors.primary,
+    },
+    reuseBtnText: {
+        fontSize: typography.fontSize.small,
+        color: colors.primary,
+        fontWeight: '600',
     },
 });

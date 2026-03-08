@@ -77,7 +77,8 @@ function parseICalDate(line: string): Date {
         return new Date(Date.UTC(year, month, day, hour, minute));
     }
 
-    return new Date(year, month, day);
+    // Use Date.UTC to avoid timezone shifts when converting to formatted string later
+    return new Date(Date.UTC(year, month, day));
 }
 
 /**

@@ -14,17 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { borderRadius, colors, spacing } from '@/src/core/theme';
 import {
+    createTemplate,
     deleteTemplate,
-    extractWordContentAsHtml,
-    listTemplates,
-    SavedTemplate,
-    saveTemplate,
+    DocumentTemplate,
+    getMyTemplates,
     updateTemplate
-} from '@/src/features/documents/services/templateService';
+} from '@/src/features/documents/services/templateDbService';
+import { extractWordContentAsHtml } from '@/src/features/documents/services/templateService';
 
 export default function TemplateEditorScreen() {
     const router = useRouter();
-    const params = useLocalSearchParams<{ showList?: string }>();
+    const params = useLocalSearchParams<{ showList?: string; filterType?: string }>();
     const richTextRef = useRef<RichEditor>(null);
 
     // Template state
@@ -35,8 +35,11 @@ export default function TemplateEditorScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
+    // Filter state - locked to filterType if provided
+    const lockedFilterType = params.filterType || null;
+
     // Saved templates
-    const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([]);
+    const [savedTemplates, setSavedTemplates] = useState<DocumentTemplate[]>([]);
     const [showTemplatesModal, setShowTemplatesModal] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [newTemplateName, setNewTemplateName] = useState('');
@@ -48,11 +51,29 @@ export default function TemplateEditorScreen() {
         if (params.showList === 'true') {
             setShowTemplatesModal(true);
         }
-    }, [params.showList]);
+    }, [params.showList, params.filterType]);
 
     const loadSavedTemplates = async () => {
-        const templates = await listTemplates();
-        setSavedTemplates(templates);
+        const result = await getMyTemplates();
+        if (result.success && Array.isArray(result.data)) {
+            // Filter by type if filterType is provided
+            if (lockedFilterType) {
+                setSavedTemplates(result.data.filter(t => t.type === lockedFilterType));
+            } else {
+                setSavedTemplates(result.data);
+            }
+        }
+    };
+
+    // Handle creating new template (starts with empty editor)
+    const handleNewTemplate = () => {
+        setCurrentTemplateId(null);
+        setTemplateName('');
+        setHtmlContent('');
+        setVariables([]);
+        richTextRef.current?.setContentHTML('');
+        setShowTemplatesModal(false);
+        setHasChanges(false);
     };
 
     // Scan Word document
@@ -91,10 +112,10 @@ export default function TemplateEditorScreen() {
     };
 
     // Load saved template
-    const handleLoadTemplate = async (template: SavedTemplate) => {
-        richTextRef.current?.setContentHTML(template.html);
-        setHtmlContent(template.html);
-        setVariables(template.variables);
+    const handleLoadTemplate = async (template: DocumentTemplate) => {
+        richTextRef.current?.setContentHTML(template.html_content);
+        setHtmlContent(template.html_content);
+        setVariables(template.variables || []);
         setTemplateName(template.name);
         setCurrentTemplateId(template.id);
         setHasChanges(false);
@@ -104,7 +125,7 @@ export default function TemplateEditorScreen() {
     };
 
     // Delete template
-    const handleDeleteTemplate = async (template: SavedTemplate) => {
+    const handleDeleteTemplate = async (template: DocumentTemplate) => {
         Alert.alert(
             'Eliminar Plantilla',
             `¿Seguro que quieres eliminar "${template.name}"?`,
@@ -114,13 +135,17 @@ export default function TemplateEditorScreen() {
                     text: 'Eliminar',
                     style: 'destructive',
                     onPress: async () => {
-                        await deleteTemplate(template.id);
-                        loadSavedTemplates();
-                        if (currentTemplateId === template.id) {
-                            setCurrentTemplateId(null);
-                            setTemplateName('');
-                            setHtmlContent('');
-                            richTextRef.current?.setContentHTML('');
+                        const result = await deleteTemplate(template.id);
+                        if (result.success) {
+                            loadSavedTemplates();
+                            if (currentTemplateId === template.id) {
+                                setCurrentTemplateId(null);
+                                setTemplateName('');
+                                setHtmlContent('');
+                                richTextRef.current?.setContentHTML('');
+                            }
+                        } else {
+                            Alert.alert('Error', result.error || 'No se pudo eliminar');
                         }
                     }
                 }
@@ -137,10 +162,17 @@ export default function TemplateEditorScreen() {
 
         if (currentTemplateId) {
             // Update existing
-            await updateTemplate(currentTemplateId, htmlContent, variables);
-            setHasChanges(false);
-            Alert.alert('✅ Guardado', 'La plantilla se ha actualizado.');
-            loadSavedTemplates();
+            const result = await updateTemplate(currentTemplateId, {
+                html_content: htmlContent,
+                variables: variables
+            });
+            if (result.success) {
+                setHasChanges(false);
+                Alert.alert('✅ Guardado', 'La plantilla se ha actualizado.');
+                loadSavedTemplates();
+            } else {
+                Alert.alert('Error', result.error || 'No se pudo actualizar');
+            }
         } else {
             // New template - show name modal
             setNewTemplateName(templateName || 'Mi Plantilla');
@@ -155,14 +187,23 @@ export default function TemplateEditorScreen() {
             return;
         }
 
-        const template = await saveTemplate(newTemplateName, htmlContent, variables);
-        setCurrentTemplateId(template.id);
-        setTemplateName(template.name);
-        setHasChanges(false);
-        setShowSaveModal(false);
-        loadSavedTemplates();
+        const result = await createTemplate({
+            name: newTemplateName,
+            html_content: htmlContent,
+            variables: variables,
+            type: (lockedFilterType as 'contract' | 'invoice' | 'checkin' | 'other') || 'contract'
+        });
 
-        Alert.alert('✅ Plantilla Guardada', `"${template.name}" se ha guardado correctamente.`);
+        if (result.success && result.data && !Array.isArray(result.data)) {
+            setCurrentTemplateId(result.data.id);
+            setTemplateName(result.data.name);
+            setHasChanges(false);
+            setShowSaveModal(false);
+            loadSavedTemplates();
+            Alert.alert('✅ Plantilla Guardada', `"${result.data.name}" se ha guardado correctamente.`);
+        } else {
+            Alert.alert('Error', result.error || 'No se pudo guardar');
+        }
     };
 
     // Handle content change
@@ -224,13 +265,23 @@ export default function TemplateEditorScreen() {
                 {/* Template Info */}
                 {templateName ? (
                     <View style={styles.templateInfo}>
-                        <Text style={styles.templateInfoText}>
-                            {currentTemplateId ? '✅' : '⚠️'} {templateName}
-                            {hasChanges && ' *'}
-                        </Text>
-                        <Text style={styles.variablesCount}>
-                            {variables.length} variables
-                        </Text>
+                        <View style={styles.templateInfoRow}>
+                            <Text style={styles.templateInfoText}>
+                                {currentTemplateId ? '✅' : '⚠️'} {templateName}
+                                {hasChanges && ' *'}
+                            </Text>
+                            <Text style={styles.variablesCount}>
+                                {variables.length} variables
+                            </Text>
+                        </View>
+                        {currentTemplateId && (
+                            <TouchableOpacity
+                                style={styles.configButton}
+                                onPress={() => router.push(`/template-variables?id=${currentTemplateId}`)}
+                            >
+                                <Text style={styles.configButtonText}>⚙️ Configurar Variables</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 ) : null}
 
@@ -317,19 +368,30 @@ export default function TemplateEditorScreen() {
             >
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>📋 Mis Plantillas</Text>
+                        <Text style={styles.modalTitle}>
+                            📋 {lockedFilterType === 'contract' ? 'Plantillas de Contratos' : 'Mis Plantillas'}
+                        </Text>
                         <TouchableOpacity onPress={() => setShowTemplatesModal(false)}>
                             <Text style={styles.modalClose}>Cerrar</Text>
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView style={styles.modalContent}>
+                        {/* Create New Template Button */}
+                        <TouchableOpacity
+                            style={styles.createNewButton}
+                            onPress={handleNewTemplate}
+                        >
+                            <Text style={styles.createNewButtonIcon}>➕</Text>
+                            <Text style={styles.createNewButtonText}>Crear Nueva Plantilla</Text>
+                        </TouchableOpacity>
+
                         {savedTemplates.length === 0 ? (
                             <View style={styles.emptyState}>
                                 <Text style={styles.emptyStateIcon}>📄</Text>
                                 <Text style={styles.emptyStateText}>No hay plantillas guardadas</Text>
                                 <Text style={styles.emptyStateHint}>
-                                    Escanea un Word y guárdalo como plantilla
+                                    Pulsa "Crear Nueva Plantilla" para empezar
                                 </Text>
                             </View>
                         ) : (
@@ -341,8 +403,8 @@ export default function TemplateEditorScreen() {
                                     >
                                         <Text style={styles.templateCardName}>{template.name}</Text>
                                         <Text style={styles.templateCardMeta}>
-                                            {template.variables.length} variables •
-                                            Editado: {new Date(template.updatedAt).toLocaleDateString()}
+                                            {(template.variables || []).length} variables •
+                                            Editado: {new Date(template.updated_at).toLocaleDateString()}
                                         </Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
@@ -661,5 +723,42 @@ const styles = StyleSheet.create({
     saveModalConfirmText: {
         color: 'white',
         fontWeight: 'bold',
+    },
+    templateInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.sm,
+    },
+    configButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    configButtonText: {
+        fontSize: 16,
+        color: 'white',
+        fontWeight: '700',
+    },
+    createNewButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.primary,
+        padding: spacing.lg,
+        borderRadius: borderRadius.md,
+        marginBottom: spacing.lg,
+        gap: spacing.sm,
+    },
+    createNewButtonIcon: {
+        fontSize: 20,
+    },
+    createNewButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

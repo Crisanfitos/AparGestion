@@ -288,20 +288,116 @@ export async function deleteTemplate(id: string): Promise<void> {
 // ==================== DOCUMENT GENERATION ====================
 
 /**
+ * Interface for group instance values
+ * Record<string, string> represents one instance of a group
+ */
+export interface GroupInstanceValues {
+    [groupName: string]: Record<string, string>[];
+}
+
+/**
+ * Configuration for a group when generating PDF
+ */
+export interface GroupConfig {
+    separator: string;
+}
+
+/**
+ * Processes repeatable groups in HTML content
+ * Expands {{#group}}...{{/group}} or {{#Group Name}}...{{/Group Name}} blocks with multiple instances
+ */
+function processRepeatableGroups(
+    html: string,
+    groupValues: GroupInstanceValues,
+    groupConfigs: Record<string, GroupConfig>
+): string {
+    let processedHtml = html;
+
+    // Find all group blocks: {{#Group Name}}...{{/Group Name}} - supports spaces
+    const groupRegex = /\{\{#([^}]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
+    let match;
+
+    // Process each group
+    while ((match = groupRegex.exec(html)) !== null) {
+        const fullMatch = match[0];
+        const groupDisplayName = match[1].trim();
+        const groupTemplate = match[2];
+
+        // Convert display name to technical name (same logic as sync function)
+        const groupTechName = groupDisplayName
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9\s_]/g, '')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+
+        const instances = groupValues[groupTechName] || [];
+        const config = groupConfigs[groupTechName] || { separator: '; ' };
+
+        if (instances.length === 0) {
+            // No instances, remove the group block entirely
+            processedHtml = processedHtml.replace(fullMatch, '');
+        } else {
+            // Expand the group for each instance
+            const expandedInstances = instances.map((instanceVars, index) => {
+                let instanceHtml = groupTemplate;
+
+                // Replace variables within this instance
+                for (const [key, value] of Object.entries(instanceVars)) {
+                    const varRegex = new RegExp(`\\{${key}\\}`, 'g');
+                    instanceHtml = instanceHtml.replace(varRegex, escapeHtml(value || ''));
+                }
+
+                return instanceHtml.trim();
+            });
+
+            // Join instances with separator
+            const expandedContent = expandedInstances.join(config.separator);
+            processedHtml = processedHtml.replace(fullMatch, expandedContent);
+        }
+    }
+
+    return processedHtml;
+}
+
+/**
  * Generates a PDF from HTML content with variables replaced
+ * Supports both simple variables and repeatable groups
  * Saves to Downloads folder on Android
+ * 
+ * @param html - HTML template content
+ * @param variables - Simple variable values (Record<string, string>)
+ * @param filename - Output filename without extension
+ * @param groupValues - Optional group instance values
+ * @param groupConfigs - Optional group configurations (separators, etc.)
  */
 export async function generatePdfFromTemplate(
     html: string,
     variables: Record<string, string>,
-    filename?: string
+    filename?: string,
+    groupValues?: GroupInstanceValues,
+    groupConfigs?: Record<string, GroupConfig>
 ): Promise<{ filepath: string; filename: string }> {
-    // Replace variables in HTML
     let processedHtml = html;
+
+    // 1. First, process repeatable groups if provided
+    if (groupValues && Object.keys(groupValues).length > 0) {
+        processedHtml = processRepeatableGroups(
+            processedHtml,
+            groupValues,
+            groupConfigs || {}
+        );
+    }
+
+    // 2. Then replace simple variables
     for (const [key, value] of Object.entries(variables)) {
         const regex = new RegExp(`\\{${key}\\}`, 'g');
         processedHtml = processedHtml.replace(regex, escapeHtml(value));
     }
+
+    // 3. Clean up any remaining unreplaced variables (show as empty)
+    processedHtml = processedHtml.replace(/\{[a-zA-Z_][a-zA-Z0-9_]*\}/g, '');
 
     // Wrap in full HTML document
     const fullHtml = `

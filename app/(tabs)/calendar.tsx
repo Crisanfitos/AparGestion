@@ -4,39 +4,67 @@
  * Enhanced booking modal with calendar picker & auto-calculation
  * Cross-platform compatible (Web + Native)
  */
-import React, { useState, useMemo } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
     Alert,
     Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
     TextInput,
     TouchableOpacity,
-    ScrollView,
-    Platform,
+    View
 } from 'react-native';
+import { Calendar, CalendarList, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CalendarList, DateData, Calendar } from 'react-native-calendars';
 
-import { colors, typography, spacing, borderRadius, touchTarget } from '@/src/core/theme';
-import { HighContrastCard, LargeTextButton } from '@/src/components/accessible';
-import { useCalendarStore, Booking } from '@/src/core/stores';
+import { LargeTextButton } from '@/src/components/accessible';
+import { Booking, useCalendarStore } from '@/src/core/stores';
+import { borderRadius, colors, spacing, touchTarget, typography } from '@/src/core/theme';
 import { useBookingSync } from '@/src/features/calendar/hooks/useBookingSync';
+import { useReservations } from '@/src/features/calendar/hooks/useReservations';
+import { syncPropertyCalendars } from '@/src/features/calendar/services/icalService';
+import { getMyProperties } from '@/src/features/properties/propertyService';
 
 type ViewMode = 'calendar' | 'list';
 
 export default function CalendarScreen() {
-    const { bookings, isLoading } = useCalendarStore();
+    const router = useRouter();
+    const { bookings, isLoading: isStoreLoading } = useCalendarStore();
     const { addManualBooking, checkConflict } = useBookingSync();
+    const { createManualReservation, loadReservations, isLoading: isDbLoading } = useReservations();
 
     const [viewMode, setViewMode] = useState<ViewMode>('calendar');
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [showNewBookingModal, setShowNewBookingModal] = useState(false);
 
+    // Initial load + iCal sync
+    React.useEffect(() => {
+        const initCalendar = async () => {
+            // 1. Get property ID
+            const propsResult = await getMyProperties();
+            if (propsResult.success && Array.isArray(propsResult.data) && propsResult.data.length > 0) {
+                const propertyId = propsResult.data[0].id;
+
+                // 2. Sync iCal calendars in background
+                console.log('[Calendar] Syncing iCal calendars...');
+                await syncPropertyCalendars(propertyId);
+                console.log('[Calendar] iCal sync complete');
+            }
+
+            // 3. Load reservations from DB
+            loadReservations();
+        };
+
+        initCalendar();
+    }, [loadReservations]);
+
     // New booking form state
     const [newBooking, setNewBooking] = useState({
         guestName: '',
+        guestEmail: '',
+        guestPhone: '',
         guestCount: 2,
         startDate: new Date(),
         endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
@@ -130,15 +158,7 @@ export default function CalendarScreen() {
         });
 
         if (booking) {
-            Alert.alert(
-                '📅 Reserva',
-                `Huésped: ${booking.guestName}\n` +
-                `Entrada: ${new Date(booking.startDate).toLocaleDateString('es-ES')}\n` +
-                `Salida: ${new Date(booking.endDate).toLocaleDateString('es-ES')}\n` +
-                `Precio: ${booking.totalPrice || 0}€\n` +
-                `Origen: ${booking.source === 'manual' ? 'Manual' : 'Booking.com'}`,
-                [{ text: 'Cerrar', style: 'cancel' }]
-            );
+            router.push(`/reservation/${booking.id}`);
         }
     };
 
@@ -148,6 +168,8 @@ export default function CalendarScreen() {
 
         setNewBooking({
             guestName: '',
+            guestEmail: '',
+            guestPhone: '',
             guestCount: 2,
             startDate: today,
             endDate: endDate,
@@ -182,7 +204,7 @@ export default function CalendarScreen() {
         setShowDatePicker(false);
     };
 
-    const handleCreateBooking = () => {
+    const handleCreateBooking = async () => {
         if (!newBooking.guestName.trim()) {
             Alert.alert('Error', 'Por favor, introduzca el nombre del huésped');
             return;
@@ -206,17 +228,23 @@ export default function CalendarScreen() {
             return;
         }
 
-        addManualBooking({
-            propertyId: 'default',
+        // Use DB Service
+        const result = await createManualReservation({
             guestName: newBooking.guestName,
+            guestEmail: newBooking.guestEmail,
+            guestPhone: newBooking.guestPhone,
             startDate: startStr,
             endDate: endStr,
             status: 'confirmed',
             totalPrice: parseFloat(totalPrice),
         });
 
-        setShowNewBookingModal(false);
-        Alert.alert('✅ Éxito', `Reserva creada: ${nights} noches por ${totalPrice}€`);
+        if (result.success) {
+            setShowNewBookingModal(false);
+            Alert.alert('✅ Éxito', `Reserva creada: ${nights} noches por ${totalPrice}€`);
+        } else {
+            Alert.alert('Error', result.error || 'No se pudo crear la reserva');
+        }
     };
 
     const formatDate = (date: Date) => {
@@ -243,14 +271,7 @@ export default function CalendarScreen() {
                 { borderLeftColor: booking.source === 'manual' ? colors.primary : colors.occupied }
             ]}
             onPress={() => {
-                Alert.alert(
-                    '📅 ' + booking.guestName,
-                    `${formatDateRange(booking.startDate, booking.endDate)}\n\n` +
-                    `Precio: ${booking.totalPrice || 0}€\n` +
-                    `Origen: ${booking.source === 'manual' ? 'Manual' : 'Booking.com'}\n` +
-                    `Estado: ${booking.status}`,
-                    [{ text: 'Cerrar', style: 'cancel' }]
-                );
+                router.push(`/reservation/${booking.id}`);
             }}
         >
             <View style={styles.bookingCardHeader}>
@@ -267,9 +288,9 @@ export default function CalendarScreen() {
             <Text style={styles.bookingCardDates}>
                 {formatDateRange(booking.startDate, booking.endDate)}
             </Text>
-            {booking.totalPrice > 0 && (
+            {booking.totalPrice && booking.totalPrice > 0 ? (
                 <Text style={styles.bookingCardPrice}>💰 {booking.totalPrice}€</Text>
-            )}
+            ) : null}
         </TouchableOpacity>
     );
 
@@ -415,6 +436,33 @@ export default function CalendarScreen() {
                                     onChangeText={(text) => setNewBooking({ ...newBooking, guestName: text })}
                                     placeholder="Ej: Juan García López"
                                     placeholderTextColor={colors.placeholder}
+                                />
+                            </View>
+
+                            {/* Guest Email */}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Email (Opcional)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={newBooking.guestEmail}
+                                    onChangeText={(text) => setNewBooking({ ...newBooking, guestEmail: text })}
+                                    placeholder="correo@ejemplo.com"
+                                    placeholderTextColor={colors.placeholder}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                            </View>
+
+                            {/* Guest Phone */}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Teléfono (Opcional)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={newBooking.guestPhone}
+                                    onChangeText={(text) => setNewBooking({ ...newBooking, guestPhone: text })}
+                                    placeholder="+34 600 000 000"
+                                    placeholderTextColor={colors.placeholder}
+                                    keyboardType="phone-pad"
                                 />
                             </View>
 
@@ -799,7 +847,7 @@ const styles = StyleSheet.create({
         marginTop: spacing.md,
     },
     summaryTitle: {
-        fontSize: typography.fontSize.large,
+        fontSize: typography.fontSize.body,
         fontWeight: '700',
         color: colors.text,
         marginBottom: spacing.md,
@@ -811,7 +859,7 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: typography.fontSize.body,
-        color: colors.textSecondary,
+        color: colors.text,
     },
     summaryValue: {
         fontSize: typography.fontSize.body,
@@ -819,54 +867,52 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     summaryDivider: {
-        height: 2,
+        height: 1,
         backgroundColor: colors.border,
-        marginVertical: spacing.md,
+        marginVertical: spacing.sm,
     },
     summaryLabelTotal: {
         fontSize: typography.fontSize.large,
         fontWeight: '700',
-        color: colors.text,
+        color: colors.primary,
     },
     summaryValueTotal: {
-        fontSize: typography.fontSize.title,
+        fontSize: typography.fontSize.large,
         fontWeight: '700',
-        color: colors.success,
+        color: colors.primary,
     },
     modalButtons: {
         marginTop: spacing.xl,
-        marginBottom: spacing.xxl,
     },
-    // Date Picker Modal styles
     datePickerOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
+        alignItems: 'center',
         padding: spacing.lg,
     },
     datePickerContainer: {
         backgroundColor: colors.background,
         borderRadius: borderRadius.lg,
         padding: spacing.lg,
-        maxWidth: 400,
-        alignSelf: 'center',
         width: '100%',
+        maxWidth: 400,
     },
     datePickerTitle: {
         fontSize: typography.fontSize.large,
         fontWeight: '700',
         color: colors.text,
+        marginBottom: spacing.lg,
         textAlign: 'center',
-        marginBottom: spacing.md,
     },
     datePickerCancel: {
-        marginTop: spacing.md,
-        padding: spacing.md,
+        marginTop: spacing.lg,
         alignItems: 'center',
+        padding: spacing.md,
     },
     datePickerCancelText: {
         fontSize: typography.fontSize.body,
-        color: colors.textSecondary,
+        color: colors.primary,
         fontWeight: '600',
     },
 });

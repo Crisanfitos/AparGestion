@@ -8,6 +8,8 @@ export interface Booking {
     id: string;
     propertyId: string;
     guestName: string;
+    guestEmail?: string;
+    guestPhone?: string;
     startDate: string;
     endDate: string;
     source: 'manual' | 'booking' | 'airbnb' | 'other';

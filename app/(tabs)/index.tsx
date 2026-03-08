@@ -103,7 +103,7 @@ export default function DashboardScreen() {
                 {/* Welcome Header */}
                 <View style={styles.header}>
                     <Text style={styles.greeting}>
-                        👋 Hola, {user?.name || 'Propietario'}
+                        👋 Hola, {user?.user_metadata?.full_name || 'Propietario'}
                     </Text>
                     <Text style={styles.subtitle}>
                         Resumen de {getMonthName()} {new Date().getFullYear()}
