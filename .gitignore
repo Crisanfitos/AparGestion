@@ -41,3 +41,15 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Claude
+CLAUDE.md
+
+# supabase
+supabase/
+
+# pruebasICAAL
+pruebasICAAL/
+
+# design
+design/
