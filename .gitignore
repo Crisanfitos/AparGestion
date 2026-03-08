@@ -51,6 +51,9 @@ supabase/
 # pruebasICAAL
 pruebasICAAL/
 
+# iCal files (may contain sensitive booking data)
+*.ics
+
 # design
 designs/
 

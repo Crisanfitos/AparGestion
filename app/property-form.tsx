@@ -470,45 +470,13 @@ export default function PropertyFormScreen() {
                         </View>
                     )}
 
-                    {/* iCal Sync Section - Only when editing */}
+                    {/* iCal Sync Section - DISABLED */}
                     {isEditing && (
-                        <View style={styles.section}>
+                        <View style={[styles.section, { opacity: 0.5 }]}>
                             <Text style={styles.sectionTitle}>📅 Sincronización de Calendarios</Text>
                             <Text style={styles.importHint}>
-                                Añade los enlaces iCal de Booking, Airbnb, etc. para evitar reservas duplicadas.
+                                Funcionalidad temporalmente deshabilitada. Proximamente se mejorará la integración con calendarios externos.
                             </Text>
-
-                            {/* List existing */}
-                            {icalSyncs.map((sync) => (
-                                <View key={sync.id} style={styles.icalRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.icalSource}>{sync.source.toUpperCase()}</Text>
-                                        <Text style={styles.icalUrl} numberOfLines={1}>{sync.ical_url}</Text>
-                                    </View>
-                                    <TouchableOpacity onPress={() => handleDeleteIcal(sync.id)} style={styles.deleteBtn}>
-                                        <Text style={{ color: 'red' }}>🗑️</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-
-                            {/* Add New */}
-                            <View style={styles.addIcalContainer}>
-                                <TextInput
-                                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                                    value={newIcalUrl}
-                                    onChangeText={setNewIcalUrl}
-                                    placeholder="https://.../calendar.ics"
-                                    placeholderTextColor={colors.placeholder}
-                                    autoCapitalize="none"
-                                />
-                                <TouchableOpacity
-                                    style={[styles.importButton, { padding: 10, borderRadius: 8, height: touchTarget.minimum }]}
-                                    onPress={handleAddIcal}
-                                    disabled={isAddingIcal}
-                                >
-                                    {isAddingIcal ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: 'bold' }}>+</Text>}
-                                </TouchableOpacity>
-                            </View>
                         </View>
                     )}
 
